@@ -1,0 +1,24 @@
+---
+pgslice_container_name: pgslice
+pgslice_image: kr3ssh/pgslice
+pgslice_version: latest
+pgslice_networks: []
+pgslice_links: []
+pgslice_env:
+  PGSLICE_URL: '$PGSLICE_URL'
+pgslice_tables: []
+
+# Example pgslice_tables:
+# pgslice_tables:
+#   - table: likes
+#     column: created_at
+#     period: day
+#     past: 3
+#     future: 3
+#   - table: comments
+#     column: created_at
+#     period: month
+#     past: 6
+#     future: 3
+#     batch_size: 10000
+#     sleep: 1

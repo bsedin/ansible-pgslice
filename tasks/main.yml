@@ -1,0 +1,2 @@
+- include: pgslice.yml
+  when: pgslice_tables is defined

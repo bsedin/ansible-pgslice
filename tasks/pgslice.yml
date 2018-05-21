@@ -1,0 +1,92 @@
+---
+- name: create pgslice intermediate tables
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: prep {{ item.table }} {{ item.column }} {{ item.period }}
+    with_items: '{{ pgslice_tables }}'
+
+- name: add partitions for tables
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: add_partitions {{ item.table }} --intermediate --past {{ item.past | default(3) }} --future {{ item.future | default(3) }}
+    with_items: '{{ pgslice_tables }}'
+
+- name: fill partitioned tables with data
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: fill {{ item.table }} --batch-size {{ item.batch_size | default(10000) }} --sleep {{ item.sleep | default(0) }}
+    with_items: '{{ pgslice_tables }}'
+
+- name: analyze tables
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: analyze {{ item.table }}
+    with_items: '{{ pgslice_tables }}'
+
+- name: swap original tables with partitioned ones
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: swap {{ item.table }}
+    with_items: '{{ pgslice_tables }}'
+
+- name: fill the rest (rows inserted between the first fill and the swap)
+  docker_container:
+    name: '{{ pgslice_container_name }}'
+    image: '{{ pgslice_image }}:{{ pgslice_version }}'
+    state: started
+    restart: yes
+    recreate: yes
+    detach: no
+    interactive: no
+    links: '{{ pgslice_links }}'
+    networks: '{{ pgslice_networks }}'
+    env: '{{ pgslice_env }}'
+    command: fill {{ item.table }} --swapped
+    with_items: '{{ pgslice_tables }}'
+
+# TODO: drop table
